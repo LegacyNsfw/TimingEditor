@@ -11,46 +11,38 @@ namespace NSFW.TimingEditor
     {
         private void smoothButton_Click(object sender, EventArgs e)
         {
+            disposeCellPopup();
             this.Smooth(this.dataGrid.SelectedCells, true);
-        }
-
-        private void smoothTableButton_Click(object sender, EventArgs e)
-        {
-            // create 2d array same size as table
-            // smooth across rows
-            // smooth across columns
-            // apply deltas
-        }
-
-        private bool CanSmooth
-        {
-            get
-            {
-                return this.Smooth(this.dataGrid.SelectedCells, false);
-            }
         }
 
         private bool Smooth(DataGridViewSelectedCellCollection selectedCells, bool forReal)
         {
-            if (this.SelectedColumn(selectedCells))
+            bool ret = false;
+            if (this.smoothComboBox.SelectedIndex == 0 || this.smoothComboBox.SelectedIndex == 1)
             {
-                if (forReal)
+                if (this.SelectedRow(selectedCells))
                 {
-                    IList<DataGridViewCell> cells = this.SortColumn(selectedCells);
-                    this.Smooth(cells);
+                    if (forReal)
+                    {
+                        IList<DataGridViewCell> cells = this.SortCellsByRow(selectedCells);
+                        this.SmoothHorizontal(cells);
+                    }
+                    ret = true;
                 }
-                return true;
             }
-            else if (this.SelectedRow(selectedCells))
+            if (this.smoothComboBox.SelectedIndex == 0 || this.smoothComboBox.SelectedIndex == 2)
             {
-                if (forReal)
+                if (this.SelectedColumn(selectedCells))
                 {
-                    IList<DataGridViewCell> cells = this.SortRow(selectedCells);
-                    this.Smooth(cells);
+                    if (forReal)
+                    {
+                        IList<DataGridViewCell> cells = this.SortCellsByColumn(selectedCells);
+                        this.SmoothVertical(cells);
+                    }
+                    ret = true;
                 }
-                return true;
             }
-            return false;
+            return ret;
         }
 
         private bool SelectedColumn(System.Collections.ICollection selectedCells)
@@ -61,22 +53,16 @@ namespace NSFW.TimingEditor
             {
                 total++;
                 if (column == -1)
-                {
                     column = cell.ColumnIndex;
-                }
                 else
                 {
                     if (column != cell.ColumnIndex)
-                    {
-                        return false;
-                    }
+                        total--;
                 }
             }
 
             if ((column == -1) || (total <= 2))
-            {
                 return false;
-            }
 
             return true;
         }
@@ -89,53 +75,38 @@ namespace NSFW.TimingEditor
             {
                 total++;
                 if (row == -1)
-                {
                     row = cell.RowIndex;
-                }
                 else
                 {
                     if (row != cell.RowIndex)
-                    {
-                        return false;
-                    }
+                        total--;
                 }
             }
 
             if ((row == -1) || (total <= 2))
-            {
                 return false;
-            }
 
             return true;
         }
 
-        private void Smooth(IList<DataGridViewCell> cells)
+        private void SmoothHorizontal(IList<DataGridViewCell> cells)
         {
             try
             {
-                double cellMinValue = cells[0].ValueAsDouble();
-                double cellMaxValue = cells[cells.Count - 1].ValueAsDouble();
-                double step = (cellMaxValue - cellMinValue) / (cells.Count - 1);
-                double min, max;
-
-                if (cellMinValue < cellMaxValue)
+                double x, x1, x2, y1, y2;
+                for (int start = 0, end = 0; end < cells.Count; )
                 {
-                    min = cellMinValue;
-                    max = cellMaxValue;
-                    for (int i = 0; i < cells.Count; i++)
+                    x1 = dataGrid.Columns[cells[start].ColumnIndex].HeaderCell.ValueAsDouble();
+                    y1 = cells[start].ValueAsDouble();
+                    for (end = start; end < cells.Count && cells[start].RowIndex == cells[end].RowIndex; ++end)
+                        continue;
+                    x2 = dataGrid.Columns[cells[end - 1].ColumnIndex].HeaderCell.ValueAsDouble();
+                    y2 = cells[end - 1].ValueAsDouble();
+                    for (; start < end; ++start)
                     {
-                        double value = min + (step * i);
-                        cells[i].Value = value.ToString(Util.DoubleFormat);
-                    }
-                }
-                else
-                {
-                    min = cellMaxValue;
-                    max = cellMinValue;
-                    for (int i = 0; i < cells.Count; i++)
-                    {
-                        double value = max + (step * i);
-                        cells[i].Value = value.ToString(Util.DoubleFormat);
+                        x = dataGrid.Columns[cells[start].ColumnIndex].HeaderCell.ValueAsDouble();
+                        double value = Util.LinearInterpolation(x, x1, x2, y1, y2);
+                        cells[start].Value = value.ToString(Util.DoubleFormat);
                     }
                 }
             }
@@ -148,7 +119,37 @@ namespace NSFW.TimingEditor
             }
         }
 
-        private List<DataGridViewCell> SortColumn(DataGridViewSelectedCellCollection input)
+        private void SmoothVertical(IList<DataGridViewCell> cells)
+        {
+            try
+            {
+                double x, x1, x2, y1, y2;
+                for (int start = 0, end = 0; end < cells.Count; )
+                {
+                    x1 = dataGrid.Rows[cells[start].RowIndex].HeaderCell.ValueAsDouble();
+                    y1 = cells[start].ValueAsDouble();
+                    for (end = start; end < cells.Count && cells[start].ColumnIndex == cells[end].ColumnIndex; ++end)
+                        continue;
+                    x2 = dataGrid.Rows[cells[end - 1].RowIndex].HeaderCell.ValueAsDouble();
+                    y2 = cells[end - 1].ValueAsDouble();
+                    for (; start < end; ++start)
+                    {
+                        x = dataGrid.Rows[cells[start].RowIndex].HeaderCell.ValueAsDouble();
+                        double value = Util.LinearInterpolation(x, x1, x2, y1, y2);
+                        cells[start].Value = value.ToString(Util.DoubleFormat);
+                    }
+                }
+            }
+            catch (FormatException e)
+            {
+                statusStrip1.Items[0].Text = e.Message;
+            }
+            catch (ArgumentNullException)
+            {
+            }
+        }
+
+        private List<DataGridViewCell> SortCellsByRow(DataGridViewSelectedCellCollection input)
         {
             List<DataGridViewCell> result = new List<DataGridViewCell>();
             foreach (DataGridViewCell cell in input)
@@ -162,19 +163,20 @@ namespace NSFW.TimingEditor
             result.Sort(delegate(DataGridViewCell a, DataGridViewCell b)
             {
                 if (a.RowIndex < b.RowIndex)
-                {
                     return -1;
-                }
-                if (a.RowIndex > b.RowIndex)
+                else if (a.RowIndex == b.RowIndex)
                 {
-                    return 1;
+                    if (a.ColumnIndex < b.ColumnIndex)
+                        return -1;
+                    else if (a.ColumnIndex == b.ColumnIndex)
+                        return 0;
                 }
-                return 0;
+                return 1;
             });
             return result;
         }
 
-        private List<DataGridViewCell> SortRow(DataGridViewSelectedCellCollection input)
+        private List<DataGridViewCell> SortCellsByColumn(DataGridViewSelectedCellCollection input)
         {
             List<DataGridViewCell> result = new List<DataGridViewCell>();
             foreach (DataGridViewCell cell in input)
@@ -188,14 +190,15 @@ namespace NSFW.TimingEditor
             result.Sort(delegate(DataGridViewCell a, DataGridViewCell b)
             {
                 if (a.ColumnIndex < b.ColumnIndex)
-                {
                     return -1;
-                }
-                if (a.ColumnIndex > b.ColumnIndex)
+                else if (a.ColumnIndex == b.ColumnIndex)
                 {
-                    return 1;
+                    if (a.RowIndex < b.RowIndex)
+                        return -1;
+                    else if (a.RowIndex == b.RowIndex)
+                        return 0;
                 }
-                return 0;
+                return 1;
             });
             return result;
         }

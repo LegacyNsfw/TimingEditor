@@ -74,6 +74,7 @@
   <ItemGroup>
     <Compile Include="CombinedTable.cs" />
     <Compile Include="CommandHistory.cs" />
+    <Compile Include="CustomDataGridViewCell.cs" />
     <Compile Include="ITable.cs" />
     <Compile Include="TimingForm.cs">
       <SubType>Form</SubType>
@@ -84,6 +85,9 @@
     <Compile Include="PassThroughTable.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="LogOverlay.resx">
+      <DependentUpon>LogOverlay.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="TimingForm.resx">
       <DependentUpon>TimingForm.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -102,6 +106,12 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <Compile Include="LogOverlay.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LogOverlay.Designer.cs">
+      <DependentUpon>LogOverlay.cs</DependentUpon>
+    </Compile>
     <Compile Include="TimingForm.Painting.cs">
       <SubType>Form</SubType>
     </Compile>
