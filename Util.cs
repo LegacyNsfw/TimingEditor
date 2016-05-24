@@ -258,9 +258,11 @@ namespace NSFW.TimingEditor
             }
         }
 
-        public static void ColorTable(DataGridView dataGridView, ITable table, int selectedX, int selectedY)
+        public static void ColorTable(DataGridView dataGridView, ITable table, int selectedX, int selectedY, String[,] cellHit)
         {
-            double min, max;
+            double min, max, unbrightness;
+            Color color;
+            DataGridViewCellStyle style;
             Util.GetMinMax(table, out min, out max);
             double middle = (max + min) / 2;
 
@@ -270,7 +272,14 @@ namespace NSFW.TimingEditor
                 {
                     double value = table.GetCell(x, y);
 
-                    Color color;
+                    if (cellHit != null)
+                    {
+                        if (cellHit[x, y] != null)
+                            dataGridView.Rows[y].Cells[x] = new CustomDataGridViewCell();
+                        else if (dataGridView.Rows[y].Cells[x] is CustomDataGridViewCell)
+                            dataGridView.Rows[y].Cells[x] = new DataGridViewTextBoxCell();
+                    }
+
                     if ((x == selectedX) || (y == selectedY))
                     {
                         color = Color.Gray;
@@ -283,24 +292,20 @@ namespace NSFW.TimingEditor
                         }
                         else
                         {
-                            double brightness;
-                            double unbrightness;
                             if (value > middle)
                             {
-                                brightness = (value - middle) / (max - middle);
-                                unbrightness = 1 - brightness;
+                                unbrightness = 1 - (value - middle) / (max - middle);
                                 color = Color.FromArgb(255, 255, (int)(255 * unbrightness));
                             }
                             else
                             {
-                                brightness = (middle - value) / (middle - min);
-                                unbrightness = ((1 - brightness) + 1) / 2;
+                                unbrightness = ((1 - (middle - value) / (middle - min)) + 1) / 2;
                                 color = Color.FromArgb((int)(255 * unbrightness), (int)(255 * unbrightness), 255);
                             }
                         }
                     }
 
-                    DataGridViewCellStyle style = DefaultStyle.Clone();
+                    style = DefaultStyle.Clone();
                     style.BackColor = color;
                     dataGridView.Rows[y].Cells[x].Value = value.ToString(DoubleFormat);
                     dataGridView.Rows[y].Cells[x].Style = style;
@@ -412,6 +417,23 @@ namespace NSFW.TimingEditor
                 }
             }
             return result;
+        }
+
+        public static double LinearInterpolation(double x, double x1, double x2, double y1, double y2)
+        {
+            return (x1 == x2) ? 0.0 : (y1 + (x - x1) * (y2 - y1) / (x2 - x1));
+        }
+
+        public static int ClosestValueIndex(double val, List<double> list)
+        {
+            int index = list.BinarySearch(val);
+            if (index < 0)
+            {
+                int idxPrev = Math.Max(0, -index - 2);
+                int idxNext = Math.Min(list.Count - 1, -index - 1);
+                return val - list[idxPrev] <= list[idxNext] - val ? idxPrev : idxNext;
+            }
+            return index;
         }
     }
 }

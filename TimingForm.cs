@@ -12,6 +12,59 @@ namespace NSFW.TimingEditor
 {
     public partial class TimingForm : Form
     {
+        public class CellPopup : Form
+        {
+            public CellPopup()
+            {
+                this.textBox = new System.Windows.Forms.RichTextBox();
+                this.SuspendLayout();
+
+                this.textBox.BackColor = System.Drawing.Color.White;
+                this.textBox.Padding = new Padding(3, 3, 3, 3);
+                this.textBox.ReadOnly = true;
+                this.textBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
+                this.textBox.Dock = System.Windows.Forms.DockStyle.Fill;
+                this.textBox.Name = "textBox";
+                this.textBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
+                this.textBox.Size = new System.Drawing.Size(175, 220);
+                this.textBox.TabIndex = 0;
+                this.textBox.Text = "";
+
+                this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+                this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+                this.AutoScroll = true;
+                this.Padding = new Padding(3, 3, 3, 3);
+                this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+                this.ClientSize = new System.Drawing.Size(175, 220);
+                this.ControlBox = false;
+                this.Controls.Add(this.textBox);
+                this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+                this.MaximizeBox = false;
+                this.MinimizeBox = false;
+                this.Name = "CellPopup";
+                this.ShowIcon = false;
+                this.ShowInTaskbar = false;
+                this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
+                this.StartPosition = FormStartPosition.Manual;
+                this.ResumeLayout(false);
+                this.PerformLayout();
+            }
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing && (components != null))
+                {
+                    components.Dispose();
+                }
+                base.Dispose(disposing);
+            }
+            protected override bool ShowWithoutActivation
+            {
+                get { return true; }
+            }
+            private System.ComponentModel.IContainer components = null;
+            public System.Windows.Forms.RichTextBox textBox = null;
+        }
+
         private TimingTables tables = new TimingTables();
         private bool changingTables;
         private bool inCellMouseEnter;
@@ -20,12 +73,17 @@ namespace NSFW.TimingEditor
         private int advancePadding;
         private bool editControlKeyDownSubscribed;
         private bool singleTableMode;
+        private String[,] baseTimingCellHit;
+        private String[,] advanceTimingCellHit;
+        private CellPopup cellPopup;
 
         public TimingForm(bool singleTableMode)
         {
             this.singleTableMode = singleTableMode;
-            
             InitializeComponent();
+            this.smoothComboBox.SelectedIndex = 0;
+            this.smoothButton.Enabled = false;
+            this.logOverlayButton.Enabled = false;
         }
 
         private void CommandHistory_UpdateButtons(object sender, EventArgs args)
@@ -98,6 +156,7 @@ namespace NSFW.TimingEditor
         
         private void tableList_SelectedIndexChanged(object sender, EventArgs e)
         {
+            disposeCellPopup();
             if (this.tableList.SelectedItem == null)
             {
                 return;
@@ -118,7 +177,7 @@ namespace NSFW.TimingEditor
                 this.statusStrip1.Items[0].Text = entry.StatusText;
             }
 
-            this.Text = string.Format(title, "v14");
+            this.Text = string.Format(title, "v15");
 
             if (entry.Table.IsPopulated)
             {
@@ -134,14 +193,17 @@ namespace NSFW.TimingEditor
                     this.dataGrid.ReadOnly = entry.Table.IsReadOnly;
                     this.changingTables = true;
                     Util.ShowTable(this, entry.Table, this.dataGrid);
-                    this.DrawSideViews(this.selectedColumn, this.selectedRow);
-                    Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow);
                     this.dataGrid.ClearSelection();
+                    this.DrawSideViews(this.selectedColumn, this.selectedRow);
+                    if (entry.Table == this.tables.InitialAdvanceTiming || entry.Table == this.tables.ModifiedAdvanceTiming)
+                        Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, advanceTimingCellHit);
+                    else if (entry.Table == this.tables.InitialBaseTiming || entry.Table == this.tables.ModifiedBaseTiming)
+                        Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, baseTimingCellHit);
+                    else
+                        Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, null);
                     this.changingTables = false;
                     foreach (int[] pair in selectedIndices)
-                    {
                         dataGrid.Rows[pair[1]].Cells[pair[0]].Selected = true;
-                    }
                 }
                 catch (IndexOutOfRangeException)
                 {
@@ -156,11 +218,16 @@ namespace NSFW.TimingEditor
                 this.dataGrid.Columns.Clear();
                 this.changingTables = false;
             }
-
+            if (entry.Table == this.tables.InitialTotalTiming || entry.Table == this.tables.ModifiedTotalTiming)
+                this.logOverlayButton.Enabled = false;
+            else
+                this.logOverlayButton.Enabled = true;
             if (entry.Table.IsReadOnly)
             {
                 this.smoothButton.Enabled = false;
+                this.logOverlayButton.Enabled = false;
             }
+            disposeCellPopup();
 
 /*            DataGridViewCell cell;
             if (this.dataGrid.SelectedCells.Count == 1)
@@ -172,6 +239,7 @@ namespace NSFW.TimingEditor
 
         private void copyButton_Click(object sender, EventArgs e)
         {
+            disposeCellPopup();
             TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
             if (entry == null)
             {
@@ -195,6 +263,7 @@ namespace NSFW.TimingEditor
 
         private void pasteButton_Click(object sender, EventArgs e)
         {
+            disposeCellPopup();
             TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
             if (entry == null)
             {
@@ -240,24 +309,27 @@ namespace NSFW.TimingEditor
                     entry.Table.IsReadOnly = true;
                 }
                 Util.ShowTable(this, entry.Table, this.dataGrid);
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, new String[entry.Table.ColumnHeaders.Count, entry.Table.RowHeaders.Count]);
+                this.dataGrid.ClearSelection();
                 this.changingTables = false;
 
                 if (entry.Table == this.tables.InitialBaseTiming)
                 {
+                    this.baseTimingCellHit = null;
                     temporaryTable.CopyTo(this.tables.ModifiedBaseTiming);
                     //Util.LoadTable(tableText, this.tables.ModifiedBaseTiming);
                 }
 
                 if (entry.Table == this.tables.InitialAdvanceTiming)
                 {
+                    this.advanceTimingCellHit = null;
                     temporaryTable.CopyTo(this.tables.ModifiedAdvanceTiming);
                     //Util.LoadTable(tableText, this.tables.ModifiedAdvanceTiming);
                 }
             }
             catch (ApplicationException ex)
             {
-                string errorMessageFormat = "Clipboard does not contain valid table data.\r\n{0}";
-                MessageBox.Show(string.Format(errorMessageFormat, ex.Message));
+                MessageBox.Show("Clipboard does not contain valid table data.\r\n" + ex.Message);
             }
         }
 
@@ -316,6 +388,7 @@ namespace NSFW.TimingEditor
             if (entry.Table.IsReadOnly)
             {
                 this.smoothButton.Enabled = false;
+                this.logOverlayButton.Enabled = false;
             }
             else
             {
@@ -336,28 +409,26 @@ namespace NSFW.TimingEditor
                 {
                     this.smoothButton.Enabled = false;
                 }
+
+                this.logOverlayButton.Enabled = true;
             }
-        }
-
-        private void dataGrid_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
-        {
-        }
-
-        private void dataGrid_CellEndEdit(object sender, DataGridViewCellEventArgs e)
-        {
         }
 
         private void dataGrid_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
         {
-            this.inCellMouseEnter = true;
-            this.selectedColumn = e.ColumnIndex;
-            this.selectedRow = e.RowIndex;
-
-            TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
-            
+            this.SuspendLayout();
+            if (this.dataGrid.ColumnCount > 0 && this.dataGrid.RowCount > 0)
+            {
+                this.inCellMouseEnter = true;
+                this.selectedColumn = e.ColumnIndex;
+                this.selectedRow = e.RowIndex;
+                TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, null);
+                this.inCellMouseEnter = false;
+            }
             this.DrawSideViews(this.selectedColumn, this.selectedRow);
-            Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow);
-            this.inCellMouseEnter = false;
+            this.ResumeLayout(false);
+            this.PerformLayout();
         }
 
         private void dataGrid_KeyDown(object sender, KeyEventArgs e)
@@ -437,8 +508,15 @@ namespace NSFW.TimingEditor
             this.changingTables = true;
             TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
             Util.ShowTable(this, entry.Table, this.dataGrid);
-            Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow);
+            this.dataGrid.ClearSelection();
+            if (entry.Table == this.tables.InitialAdvanceTiming || entry.Table == this.tables.ModifiedAdvanceTiming)
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, advanceTimingCellHit);
+            else if (entry.Table == this.tables.InitialBaseTiming || entry.Table == this.tables.ModifiedBaseTiming)
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, baseTimingCellHit);
+            else
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, null);
             this.changingTables = false;
+            disposeCellPopup();
             this.DrawSideViews(this.selectedColumn, this.selectedRow);
         }
 
@@ -449,9 +527,292 @@ namespace NSFW.TimingEditor
             this.changingTables = true;
             TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
             Util.ShowTable(this, entry.Table, this.dataGrid);
-            Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow);
+            this.dataGrid.ClearSelection();
+            if (entry.Table == this.tables.InitialAdvanceTiming || entry.Table == this.tables.ModifiedAdvanceTiming)
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, advanceTimingCellHit);
+            else if (entry.Table == this.tables.InitialBaseTiming || entry.Table == this.tables.ModifiedBaseTiming)
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, baseTimingCellHit);
+            else
+                Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, null);
             this.changingTables = false;
+            disposeCellPopup();
             this.DrawSideViews(this.selectedColumn, this.selectedRow);
+        }
+
+        private void dataGrid_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (dataGrid.SelectionMode != DataGridViewSelectionMode.ColumnHeaderSelect)
+            {
+                dataGrid.SelectionMode = DataGridViewSelectionMode.ColumnHeaderSelect;
+                dataGrid.Columns[e.ColumnIndex].Selected = true;
+            }
+        }
+
+        private void dataGrid_RowHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (dataGrid.SelectionMode != DataGridViewSelectionMode.RowHeaderSelect)
+            {
+                dataGrid.SelectionMode = DataGridViewSelectionMode.RowHeaderSelect;
+                dataGrid.Rows[e.RowIndex].Selected = true;
+            }
+        }
+
+        private void smoothComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            DataGridViewSelectedCellCollection selectedCells = this.dataGrid.SelectedCells;
+            TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
+            if (entry != null)
+            {
+                if (entry.Table.IsReadOnly)
+                    this.smoothButton.Enabled = false;
+                else
+                {
+                    if (this.Smooth(selectedCells, false))
+                        this.smoothButton.Enabled = true;
+                    else
+                        this.smoothButton.Enabled = false;
+                }
+            }
+        }
+
+        private void disposeCellPopup()
+        {
+            if (cellPopup != null)
+            {
+                cellPopup.Dispose();
+                cellPopup = null;
+            }
+        }
+
+        private void logOverlayButton_Click(object sender, EventArgs e)
+        {
+            TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
+            if (entry != null)
+            {
+                disposeCellPopup();
+                this.dataGrid.ClearSelection();
+                if (entry.Table.IsReadOnly)
+                    this.logOverlayButton.Enabled = false;
+                else if (!entry.Table.IsPopulated)
+                    MessageBox.Show("Error: Please populate table first");
+                else
+                {
+                    String line;
+                    OpenFileDialog file = new OpenFileDialog();
+                    if (file.ShowDialog() == DialogResult.OK)
+                    {
+                        StreamReader sr = new StreamReader(file.FileName, Encoding.Default);
+                        try
+                        {
+                            line = sr.ReadLine();
+                            if (line != null)
+                            {
+                                String[] header = line.Split(',');
+                                int i = 0;
+                                foreach (String h in header)
+                                    header[i++] = h.Trim();
+                                LogOverlay logOverlay = new LogOverlay();
+                                logOverlay.LogParameters = header;
+                                if (DialogResult.OK == logOverlay.ShowDialog(this))
+                                {
+                                    String[] selected = logOverlay.LogParameters;
+                                    String xAxis = logOverlay.XAxis;
+                                    String yAxis = logOverlay.YAxis;
+                                    if (selected.Length > 0)
+                                    {
+                                        String[,] cellHit = null;
+                                        if (entry.Table == this.tables.InitialAdvanceTiming || entry.Table == this.tables.ModifiedAdvanceTiming)
+                                        {
+                                            advanceTimingCellHit = new String [entry.Table.ColumnHeaders.Count,entry.Table.RowHeaders.Count];
+                                            cellHit = advanceTimingCellHit;
+                                        }
+                                        else if (entry.Table == this.tables.InitialBaseTiming || entry.Table == this.tables.ModifiedBaseTiming)
+                                        {
+                                            baseTimingCellHit = new String [entry.Table.ColumnHeaders.Count,entry.Table.RowHeaders.Count];
+                                            cellHit = baseTimingCellHit;
+                                        }
+                                        int xIdx = Array.IndexOf(header, xAxis);
+                                        int yIdx = Array.IndexOf(header, yAxis);
+                                        int[] indeces = new int[selected.Length];
+                                        for (i = 0; i < selected.Length; ++i)
+                                            indeces[i] = Array.IndexOf(header, selected[i]);
+                                        Cursor cursor = Cursor.Current;
+                                        Cursor.Current = Cursors.WaitCursor;
+                                        double X, Y, x, y, v;
+                                        int xArrIdx, yArrIdx;
+                                        this.changingTables = true;
+                                        try
+                                        {
+                                            List<double> xAxisArray = (List<double>)entry.Table.ColumnHeaders;
+                                            List<double> yAxisArray = (List<double>)entry.Table.RowHeaders;
+                                            Dictionary<int, Dictionary<int, Dictionary<String, String>>> xDict = new Dictionary<int, Dictionary<int, Dictionary<String, String>>>();
+                                            Dictionary<int, Dictionary<String, String>> yDict;
+                                            Dictionary<String, String> paramDict;
+                                            String val;
+                                            while ((line = sr.ReadLine()) != null)
+                                            {
+                                                String[] vals = line.Split(',');
+                                                if (double.TryParse(vals[xIdx], out x) && double.TryParse(vals[yIdx], out y))
+                                                {
+                                                    X = xAxisArray[Util.ClosestValueIndex(x, xAxisArray)];
+                                                    Y = yAxisArray[Util.ClosestValueIndex(y, yAxisArray)];
+                                                    for (int idx = 0; idx < indeces.Length; ++idx)
+                                                    {
+                                                        if (idx == xIdx || idx == yIdx)
+                                                            continue;
+                                                        if (double.TryParse(vals[indeces[idx]], out v) && v != 0.0)
+                                                        {
+                                                            xArrIdx = xAxisArray.IndexOf(X);
+                                                            yArrIdx = yAxisArray.IndexOf(Y);
+
+                                                            if (!xDict.TryGetValue(xArrIdx, out yDict))
+                                                            {
+                                                                yDict = new Dictionary<int, Dictionary<String, String>>();
+                                                                xDict[xArrIdx] = yDict;
+                                                            }
+                                                            if (!yDict.TryGetValue(yArrIdx, out paramDict))
+                                                            {
+                                                                paramDict = new Dictionary<String, String>();
+                                                                yDict[yArrIdx] = paramDict;
+                                                            }
+                                                            if (!paramDict.TryGetValue(selected[idx], out val))
+                                                                paramDict[selected[idx]] = "    [" + x + ", " + y + ", " + v + "]\r\n";
+                                                            else
+                                                                paramDict[selected[idx]] += ("    [" + x + ", " + y + ", " + v + "]\r\n");
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            foreach (KeyValuePair<int, Dictionary<int, Dictionary<String, String>>> xPair in xDict)
+                                            {
+                                                foreach (KeyValuePair<int, Dictionary<String, String>> yPair in xPair.Value)
+                                                {
+                                                    foreach (KeyValuePair<String, String> paramPair in yPair.Value)
+                                                    {
+                                                        if (cellHit[xPair.Key, yPair.Key] == null)
+                                                            cellHit[xPair.Key, yPair.Key] = "";
+                                                        cellHit[xPair.Key, yPair.Key] += (paramPair.Key + ":\r\n" + paramPair.Value);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            MessageBox.Show("Error: " + ex.Message);
+                                        }
+                                        Util.ColorTable(this.dataGrid, entry.Table, this.selectedColumn, this.selectedRow, cellHit);
+                                        this.dataGrid.Refresh();
+                                        this.changingTables = false;
+                                        Cursor.Current = cursor;
+                                    }
+                                    else
+                                        MessageBox.Show("Error: No parameters were selected");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show("Error: " + ex.Message);
+                        }
+                        finally
+                        {
+                            sr.Close();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void dataGrid_CellEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            try
+            {
+                disposeCellPopup();
+                TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
+                if (e.ColumnIndex >= 0 && e.RowIndex >= 0 && entry != null && dataGrid.GetCellCount(DataGridViewElementStates.Selected) == 1 &&
+                    dataGrid.SelectedCells[0].RowIndex == e.RowIndex && dataGrid.SelectedCells[0].ColumnIndex == e.ColumnIndex && dataGrid[e.ColumnIndex, e.RowIndex].IsInEditMode == false)
+                {
+                    String[,] cellHit = null;
+                    if (entry.Table == this.tables.InitialAdvanceTiming || entry.Table == this.tables.ModifiedAdvanceTiming)
+                    {
+                        cellHit = advanceTimingCellHit;
+                    }
+                    else if (entry.Table == this.tables.InitialBaseTiming || entry.Table == this.tables.ModifiedBaseTiming)
+                    {
+                        cellHit = baseTimingCellHit;
+                    }
+                    if (cellHit != null)
+                    {
+                        if (cellHit[e.ColumnIndex, e.RowIndex] != null)
+                        {
+                            cellPopup = new CellPopup();
+                            cellPopup.textBox.Text = cellHit[e.ColumnIndex, e.RowIndex];
+                            Rectangle r = dataGrid.GetCellDisplayRectangle(e.ColumnIndex, e.RowIndex, false);
+                            cellPopup.Location = dataGrid.PointToScreen(new Point(r.Location.X + r.Width, r.Location.Y - cellPopup.Height));
+                            cellPopup.Show(dataGrid);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: " + ex.Message);
+            }
+        }
+
+        private void dataGrid_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void dataGrid_Leave(object sender, EventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void TimingForm_MouseDown(object sender, MouseEventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void TimingForm_ResizeBegin(object sender, EventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void TimingForm_LocationChanged(object sender, EventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void tableList_MouseDown(object sender, MouseEventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void horizontalPanel_MouseDown(object sender, MouseEventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void verticalPanel_MouseDown(object sender, MouseEventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void smoothComboBox_MouseDown(object sender, MouseEventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void dataGrid_CellLeave(object sender, DataGridViewCellEventArgs e)
+        {
+            disposeCellPopup();
+        }
+
+        private void dataGrid_CurrentCellChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
