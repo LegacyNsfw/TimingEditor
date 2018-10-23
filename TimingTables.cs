@@ -5,6 +5,9 @@ using System.Text;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Represents a single entry in the list of tables.
+    /// </summary>
     public class TableListEntry
     {
         private string description;
@@ -34,6 +37,9 @@ namespace NSFW.TimingEditor
         }
     }
 
+    /// <summary>
+    /// Represents the set of tables (including virtual / synthetic tables) that the application can render.
+    /// </summary>
     public class TimingTables
     {
         private ITable initialBaseTiming;

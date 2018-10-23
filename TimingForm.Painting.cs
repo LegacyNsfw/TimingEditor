@@ -7,8 +7,14 @@ using System.Windows.Forms;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Painting code for the application's main window.
+    /// </summary>
 	public partial class TimingForm : Form
 	{
+        /// <summary>
+        /// Draw the side views that help visual=ize the table shape.
+        /// </summary>
         private void DrawSideViews(int activeColumn, int activeRow)
         {
             Bitmap horizontalPanelBitmap = new Bitmap(this.horizontalPanel.Width, this.horizontalPanel.Height);
@@ -75,6 +81,9 @@ namespace NSFW.TimingEditor
             graphics.DrawImage(verticalPanelBitmap, 0, 0);
         }
 
+        /// <summary>
+        /// Get the min and max values for the whole data-grid.
+        /// </summary>
         private void GetMinMax(out double min, out double max)
         {
             min = double.MaxValue;
@@ -95,6 +104,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Min and Max data about a range of cells.
+        /// </summary>
         private class SmoothInfo
         {
             public DataGridViewCell A;
@@ -103,6 +115,9 @@ namespace NSFW.TimingEditor
             public double MaxValue;
         }
 
+        /// <summary>
+        /// Calculate the 'SmoothInfo' for a selected set of cells.
+        /// </summary>
         private SmoothInfo GetSmoothInfo(double min, double max)
         {
             DataGridViewSelectedCellCollection selected = this.dataGrid.SelectedCells;
@@ -135,6 +150,9 @@ namespace NSFW.TimingEditor
             return null;
         }
 
+        /// <summary>
+        /// Draw a row of data.
+        /// </summary>
         private void DrawRowSmooth(Graphics graphics, SmoothInfo si)
         {
             double valueA, valueB;
@@ -164,6 +182,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Draw a column of data.
+        /// </summary>
         private void DrawColumnSmooth(Graphics graphics, SmoothInfo si)
         {
             double valueA, valueB;
@@ -188,6 +209,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Draw a row of data.
+        /// </summary>
         private void DrawRow(Graphics graphics, Pen pen, int row, double min, double max)
         {
             double value;
@@ -225,6 +249,9 @@ namespace NSFW.TimingEditor
             //graphics.DrawLine(pen, lastX, lastY, nextX, nextY);
         }
 
+        /// <summary>
+        /// Draw a column of data.
+        /// </summary>
         private void DrawColumn(Graphics graphics, Pen pen, int column, double min, double max)
         {
             double value;

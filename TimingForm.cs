@@ -10,17 +10,56 @@ using System.Windows.Forms;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// The main form for the application.
+    /// </summary>
     public partial class TimingForm : Form
     {
+        /// <summary>
+        /// Collection of timing tables.
+        /// </summary>
         private TimingTables tables = new TimingTables();
+
+        /// <summary>
+        /// Indicates whether we're changing tables.
+        /// </summary>
         private bool changingTables;
+
+        /// <summary>
+        /// When the mouse is in a cell, we need to suppress value-changed messages.
+        /// </summary>
         private bool inCellMouseEnter;
+
+        /// <summary>
+        /// Indicates which column is selected.
+        /// </summary>
         private int selectedColumn;
+
+        /// <summary>
+        /// Indicates which row is selected.
+        /// </summary>
         private int selectedRow;
+
+        /// <summary>
+        /// Since the advance table is often smaller than the base table, this indicates
+        /// how many columns had to be faked in order to line up the table contents.
+        /// </summary>
         private int advancePadding;
+
+        /// <summary>
+        /// Indicates whether we're subscribed for key-down events.
+        /// It's a reminder to unsubscribe later.
+        /// </summary>
         private bool editControlKeyDownSubscribed;
+
+        /// <summary>
+        /// Indicates whether we're in single-table mode.
+        /// </summary>
         private bool singleTableMode;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public TimingForm(bool singleTableMode)
         {
             this.singleTableMode = singleTableMode;
@@ -28,12 +67,20 @@ namespace NSFW.TimingEditor
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Update the undo and redo buttons.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
         private void CommandHistory_UpdateButtons(object sender, EventArgs args)
         {
             this.undoButton.Enabled = CommandHistory.Instance.CanUndo;
             this.redoButton.Enabled = CommandHistory.Instance.CanRedo;
         }
 
+        /// <summary>
+        /// Prepare the form contents before displaying.
+        /// </summary>
         private void MainForm_Load(object sender, EventArgs e)
         {
             CommandHistory.Instance.UpdateCommandHistoryButtons += this.CommandHistory_UpdateButtons;
@@ -96,6 +143,9 @@ namespace NSFW.TimingEditor
             this.tableList.SelectedIndex = 0;
         }
         
+        /// <summary>
+        /// Invoked when the selected-index of the table list has changed.
+        /// </summary>
         private void tableList_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (this.tableList.SelectedItem == null)
@@ -170,6 +220,9 @@ namespace NSFW.TimingEditor
             }            */
         }
 
+        /// <summary>
+        /// Invoked when the Copy button is clicked.
+        /// </summary>
         private void copyButton_Click(object sender, EventArgs e)
         {
             TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
@@ -193,6 +246,9 @@ namespace NSFW.TimingEditor
             Clipboard.SetData(DataFormats.Text, text);
         }
 
+        /// <summary>
+        /// Invoked when the paste button is clicked.
+        /// </summary>
         private void pasteButton_Click(object sender, EventArgs e)
         {
             TableListEntry entry = this.tableList.SelectedItem as TableListEntry;
@@ -261,6 +317,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Invoked when the value of a data grid cell has changed.
+        /// </summary>
         private void dataGrid_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
             if (this.changingTables || this.inCellMouseEnter)
@@ -308,6 +367,9 @@ namespace NSFW.TimingEditor
             this.DrawSideViews(e.ColumnIndex, e.RowIndex);
         }
 
+        /// <summary>
+        /// Invoked when the state of a data-grid cell has changed.
+        /// </summary>
         private void dataGrid_CellStateChanged(object sender, DataGridViewCellStateChangedEventArgs e)
         {
             DataGridViewSelectedCellCollection selectedCells = this.dataGrid.SelectedCells;
@@ -339,14 +401,23 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Invoked when a data-grid cell is validating new data.
+        /// </summary>
         private void dataGrid_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
         {
         }
 
+        /// <summary>
+        /// Invoked when a data-grid cell is exiting edit mode.
+        /// </summary>
         private void dataGrid_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
         }
 
+        /// <summary>
+        /// Invoked when the mouse is entering a data-grid cell.
+        /// </summary>
         private void dataGrid_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
         {
             this.inCellMouseEnter = true;
@@ -360,6 +431,9 @@ namespace NSFW.TimingEditor
             this.inCellMouseEnter = false;
         }
 
+        /// <summary>
+        /// Invoked when a key is pressed and a data-grid cell has focus.
+        /// </summary>
         private void dataGrid_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Control)
@@ -376,6 +450,9 @@ namespace NSFW.TimingEditor
             }
         }
         
+        /// <summary>
+        /// Invoked when the editing control is shown for a data-grid cell.
+        /// </summary>
         private void dataGrid_EditingControlShowing(object sender, DataGridViewEditingControlShowingEventArgs e)
         {
             if (!this.editControlKeyDownSubscribed)
@@ -385,6 +462,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Invoked when a key is pressed and a data-grid cell's editor is showing.
+        /// </summary>
         private void dataGridEditControl_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyValue == 187)
@@ -404,6 +484,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Adjust the currently-selected cells by the given amount.
+        /// </summary>
         private void Delta(double delta)
         {
             foreach (DataGridViewCell cell in this.dataGrid.SelectedCells)
@@ -417,6 +500,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Try to give the value for a single cell.
+        /// </summary>
         private bool TryGetValue(int x, int y, out double value)
         {
             value = 0;
@@ -430,6 +516,9 @@ namespace NSFW.TimingEditor
             return double.TryParse(o.ToString(), out value);
         }
 
+        /// <summary>
+        /// Invoked when the redo button is clicked.
+        /// </summary>
         private void redoButton_Click(object sender, EventArgs e)
         {
             CommandHistory.Instance.Redo();
@@ -442,6 +531,9 @@ namespace NSFW.TimingEditor
             this.DrawSideViews(this.selectedColumn, this.selectedRow);
         }
 
+        /// <summary>
+        /// Invoked when the undo button is clicked.
+        /// </summary>
         private void undoButton_Click(object sender, EventArgs e)
         {
             Command command = CommandHistory.Instance.Undo();

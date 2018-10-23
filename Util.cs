@@ -8,12 +8,18 @@ using System.Windows.Forms;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Random bits of code that have no other home.
+    /// </summary>
     public static class Util
     {
         public static string DoubleFormat = "0.00";
         public static int RowHeaderWidth = 60;
         public static int ColumnWidth = 40;
-            
+           
+        /// <summary>
+        /// Get a cells's value as a double.
+        /// </summary>
         public static double ValueAsDouble(this DataGridViewCell cell)
         {
             if (cell.Value is double)
@@ -27,6 +33,9 @@ namespace NSFW.TimingEditor
             throw new FormatException("Can't parse " + cell.Value.ToString());
         }
 
+        /// <summary>
+        /// Load a table from the given string (table data copied from RomRaider).
+        /// </summary>
         public static void LoadTable(string tableText, ITable table)
         {
             /*using (FileStream file = new FileStream("c:\\temp\\paste.txt", FileMode.Create))
@@ -100,6 +109,9 @@ namespace NSFW.TimingEditor
             table.Populated();
         }
 
+        /// <summary>
+        /// Copy a table into a string (suitable for pasting into RomRaider).
+        /// </summary>
         public static string CopyTable(ITable table)
         {
             StringWriter writer = new StringWriter();
@@ -135,6 +147,9 @@ namespace NSFW.TimingEditor
             return writer.ToString();
         }
 
+        /// <summary>
+        /// Pad a dynamic-advance table so that it will align with a base timing table.
+        /// </summary>
         public static Table PadLeft(Table source, int desiredColumns)
         {
             Table result = new Table();
@@ -176,6 +191,9 @@ namespace NSFW.TimingEditor
             return result;
         }
 
+        /// <summary>
+        /// Trim padding from a dynamic advance table.
+        /// </summary>
         public static Table TrimLeft(ITable source, int columnsToRemove)
         {
             Table result = new Table();
@@ -237,6 +255,9 @@ namespace NSFW.TimingEditor
             }
         }*/
 
+        /// <summary>
+        /// Get the min and max values from a table.
+        /// </summary>
         private static void GetMinMax(ITable table, out double min, out double max)
         {
             min = double.MaxValue;
@@ -258,6 +279,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Set the coloring for table cells.
+        /// </summary>
         public static void ColorTable(DataGridView dataGridView, ITable table, int selectedX, int selectedY)
         {
             double min, max;
@@ -308,6 +332,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Update the Form to show a table.
+        /// </summary>
         public static void ShowTable(Form form, ITable table, DataGridView dataGridView)
         {
             DataGridViewCell template = new DataGridViewTextBoxCell();
@@ -384,6 +411,9 @@ namespace NSFW.TimingEditor
             }
         }
 */
+        /// <summary>
+        /// Convert an array of strings to an array of double values.
+        /// </summary>
         public static double[] GetValues(string[] valueStrings)
         {
             double[] result = new double[valueStrings.Length];

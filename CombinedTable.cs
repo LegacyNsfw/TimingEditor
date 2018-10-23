@@ -5,6 +5,9 @@ using System.Text;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Which operation to carry out between two tables.
+    /// </summary>
     public enum Operation
     {
         Undefined = 0,
@@ -12,16 +15,44 @@ namespace NSFW.TimingEditor
         Difference = 2,
     }
 
+    /// <summary>
+    /// Combines two tables and presents them as one.
+    /// </summary>
     public class CombinedTable : ITable
     {
+        /// <summary>
+        /// One of the tables to combine (see below).
+        /// </summary>
         private ITable a;
+
+        /// <summary>
+        /// The other table to combine (see above).
+        /// </summary>
         private ITable b;
+
+        /// <summary>
+        /// The operation to use to combine the two tables.
+        /// </summary>
         private Operation operation;
 
+        /// <summary>
+        /// Indicates whether the combined table is read-only.
+        /// </summary>
         public bool IsReadOnly { get { return this.a.IsReadOnly || this.b.IsReadOnly || this.operation != Operation.Sum; } set { throw new InvalidOperationException(); } }
+
+        /// <summary>
+        /// Row headers for the combined table (always just the headers from table A).
+        /// </summary>
         public IList<double> RowHeaders { get { return this.a.RowHeaders; } }
+
+        /// <summary>
+        /// Column headers for the combined table (always just the headers from table A).
+        /// </summary>
         public IList<double> ColumnHeaders { get { return this.a.ColumnHeaders; } }
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public CombinedTable(ITable a, ITable b, Operation operation)
         {
             this.a = a;
@@ -29,6 +60,10 @@ namespace NSFW.TimingEditor
             this.operation = operation;
         }
 
+        /// <summary>
+        /// Create a new table based on this one. Not implemented though. 
+        /// </summary>
+        /// <returns></returns>
         public ITable Clone()
         {
             throw new InvalidOperationException();
@@ -39,11 +74,17 @@ namespace NSFW.TimingEditor
             return result;*/
         }
 
+        /// <summary>
+        /// Copy this table's data into another table. Not implemented.
+        /// </summary>
         public void CopyTo(ITable other)
         {
             throw new InvalidOperationException();
         }
 
+        /// <summary>
+        /// Indicates whether this table (actually, its two consituent tables) is fully populated.
+        /// </summary>
         public bool IsPopulated
         {
             get
@@ -52,15 +93,24 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Reset the table. It's a no-op for this class.
+        /// </summary>
         public void Reset()
         {
         }
 
+        /// <summary>
+        /// Invoke when populated. Throws because that doesn't make sense for this table type.
+        /// </summary>
         public void Populated()
         {
             throw new InvalidOperationException();
         }
 
+        /// <summary>
+        /// Get the value of a cell in this table. The value is computed from the underlying tables and the operation type.
+        /// </summary>
         public double GetCell(int x, int y)
         {
             if (this.operation == Operation.Sum)
@@ -77,6 +127,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Set the value of a cell in this table. Actually we edit only table 'a'.
+        /// </summary>
         public void SetCell(int x, int y, double value)
         {
             double oldTotalValue = this.GetCell(x, y);

@@ -5,22 +5,53 @@ using System.Text;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Implements a table that passes edits through to another table.
+    /// </summary>
     public class PassThroughTable : ITable
     {
+        /// <summary>
+        /// The base timing table.
+        /// </summary>
         private ITable baseTable;
+
+        /// <summary>
+        /// The dynamic timing advance table.
+        /// </summary>
         private ITable advanceTable;
+
+        /// <summary>
+        /// Indicates whether the table is fully populated.
+        /// </summary>
         private bool populated;
 
+        /// <summary>
+        /// Indicates whether the table is read-only.
+        /// </summary>
         public bool IsReadOnly { get { return false; } set { throw new InvalidOperationException(); } }
+
+        /// <summary>
+        /// Row headers for the table.
+        /// </summary>
         public IList<double> RowHeaders { get { return this.advanceTable.RowHeaders; } }
+
+        /// <summary>
+        /// Column headers for the table.
+        /// </summary>
         public IList<double> ColumnHeaders { get { return this.advanceTable.ColumnHeaders; } }
 
+        /// <summary>
+        /// Constructor - takes a reference to the base timing table.
+        /// </summary>
         public PassThroughTable(ITable baseTable)
         {
             this.baseTable = baseTable;
             this.advanceTable = new Table();
         }
 
+        /// <summary>
+        /// Clone this table.
+        /// </summary>
         public ITable Clone()
         {
             PassThroughTable result = new PassThroughTable(this.baseTable);
@@ -29,6 +60,9 @@ namespace NSFW.TimingEditor
             return result;
         }
 
+        /// <summary>
+        /// Copy the contents of this table into another table.
+        /// </summary>
         public void CopyTo(ITable other)
         {
             other.Reset();
@@ -53,6 +87,9 @@ namespace NSFW.TimingEditor
             other.Populated();
         }
 
+        /// <summary>
+        /// Indicates whether this table is fully populated.
+        /// </summary>
         public bool IsPopulated
         {
             get
@@ -61,23 +98,35 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Reset this table.
+        /// </summary>
         public void Reset()
         {
             this.populated = false;
             this.advanceTable.Reset();
         }
 
+        /// <summary>
+        /// Invoke when fully populated to mark this table and the advance table as populated.
+        /// </summary>
         public void Populated()
         {
             this.populated = true;
             this.advanceTable.Populated();
         }
 
+        /// <summary>
+        /// Get the contents of a cell.
+        /// </summary>
         public double GetCell(int x, int y)
         {
             return this.advanceTable.GetCell(x, y);
         }
 
+        /// <summary>
+        /// Set the contents of a cell.
+        /// </summary>
         public void SetCell(int x, int y, double value)
         {
             if (this.populated)

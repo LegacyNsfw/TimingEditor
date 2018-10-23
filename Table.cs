@@ -5,24 +5,68 @@ using System.Text;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Represents a single table direct from the ECU image.
+    /// </summary>
     public class Table : ITable
     {
+        /// <summary>
+        /// Indicates whether the table is fully populated.
+        /// </summary>
         private bool isPopulated;
+
+        /// <summary>
+        /// Indicates whether the table is read-only.
+        /// </summary>
         private bool isReadOnly;
+
+        /// <summary>
+        /// Contains the raw values of the table cells.
+        /// </summary>
         private double[][] cells;
+
+        /// <summary>
+        /// Row header values.
+        /// </summary>
         private IList<double> rowHeaders;
+
+        /// <summary>
+        /// Column header values.
+        /// </summary>
         private IList<double> columnHeaders;
+
+        /// <summary>
+        /// Indicates whether the table is read-only.
+        /// </summary>
         public bool IsReadOnly { get { return this.isReadOnly; } set { this.isReadOnly = value; } }
+
+        /// <summary>
+        /// Indicates whether the table is fully populated.
+        /// </summary>
         public bool IsPopulated { get { return this.isPopulated; } }
+
+        /// <summary>
+        /// Gets the row header values.
+        /// </summary>
         public IList<double> RowHeaders { get { return this.rowHeaders; } }
+
+        /// <summary>
+        /// Gets the column header values.
+        /// </summary>
         public IList<double> ColumnHeaders { get { return this.columnHeaders; } }
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public Table()
         {
             this.isPopulated = false;
             //this.isReadOnly = isReadOnly;
         }
 
+        /// <summary>
+        /// Clone the table.
+        /// </summary>
         public ITable Clone()
         {
             Table result = new Table();
@@ -55,6 +99,9 @@ namespace NSFW.TimingEditor
             return result;
         }
 
+        /// <summary>
+        /// Copy the table contents into another table.
+        /// </summary>
         public void CopyTo(ITable other)
         {
             other.Reset();
@@ -90,6 +137,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Reset the table contents.
+        /// </summary>
         public void Reset()
         {
             this.cells = null;
@@ -112,13 +162,22 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Indicates whether the table is populated.
+        /// </summary>
         public void Populated()
         {
             this.isPopulated = true;
         }
 
+        /// <summary>
+        /// Get the value of a single cell.
+        /// </summary>
         public double GetCell(int x, int y) { return this.cells[x][y]; }
 
+        /// <summary>
+        /// Set the value of a single cell.
+        /// </summary>
         public void SetCell(int x, int y, double value)
         {
             if (this.isReadOnly)
