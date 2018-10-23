@@ -5,12 +5,18 @@ using System.Text;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Base class for a command.
+    /// </summary>
     public abstract class Command
     {
         public abstract void Execute();
         public abstract void Undo();
     }
 
+    /// <summary>
+    /// Change the value of a cell.
+    /// </summary>
     public class EditCell : Command
     {
         private ITable table;
@@ -118,22 +124,49 @@ namespace NSFW.TimingEditor
         }
     }
 */
+
+    /// <summary>
+    /// Allows the undo/redo buttons to be updated appropriately.
+    /// </summary>
     public delegate void UpdateCommandHistoryButtons(object sender, EventArgs args);
 
+    /// <summary>
+    /// Implements the CommandHistory patter from the Gang-Of-Four book.
+    /// </summary>
     public class CommandHistory
     {
+        /// <summary>
+        /// Singleton.
+        /// </summary>
         private static CommandHistory instance = new CommandHistory();
+
+        /// <summary>
+        /// List of commands that can be undone.
+        /// </summary>
         private List<Command> commands;
+
+        /// <summary>
+        /// List of commands that have been undone - and therefore can be redone.
+        /// </summary>
         private List<Command> undone;
 
+        /// <summary>
+        /// Allows updating the undo/redo buttons.
+        /// </summary>
         public event UpdateCommandHistoryButtons UpdateCommandHistoryButtons;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         private CommandHistory()
         {
             this.commands = new List<Command>();
             this.undone = new List<Command>();
         }
 
+        /// <summary>
+        /// Singleton accessor.
+        /// </summary>
         public static CommandHistory Instance
         {
             [System.Diagnostics.DebuggerStepThrough]
@@ -143,9 +176,19 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Indicates whether we're in a state where a command can be undone.
+        /// </summary>
         public bool CanUndo { get { return this.commands.Count > 0; } }
+
+        /// <summary>
+        /// Indicates whether we're in a state when a command can be redone.
+        /// </summary>
         public bool CanRedo { get { return this.undone.Count > 0; } }
 
+        /// <summary>
+        /// Execute a new command.
+        /// </summary>
         public void Execute(Command command)
         {
             command.Execute();
@@ -154,6 +197,9 @@ namespace NSFW.TimingEditor
             this.UpdateButtons();
         }
 
+        /// <summary>
+        /// Undo a recent command.
+        /// </summary>
         public Command Undo()
         {
             if (this.commands.Count == 0)
@@ -173,6 +219,9 @@ namespace NSFW.TimingEditor
             return command;
         }
 
+        /// <summary>
+        /// Redo a recently undone command.
+        /// </summary>
         public Command Redo()
         {
             if (this.undone.Count == 0)
@@ -192,6 +241,9 @@ namespace NSFW.TimingEditor
             return command;
         }
 
+        /// <summary>
+        /// Update the undo/redo buttons.
+        /// </summary>
         private void UpdateButtons()
         {
             if (this.UpdateCommandHistoryButtons != null)

@@ -7,13 +7,24 @@ using System.Windows.Forms;
 
 namespace NSFW.TimingEditor
 {
+    /// <summary>
+    /// Table-smoothing code for the application main window.
+    /// </summary>
     public partial class TimingForm : Form
     {
+        /// <summary>
+        /// Invoked when the 'Smooth' button is clicked.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void smoothButton_Click(object sender, EventArgs e)
         {
             this.Smooth(this.dataGrid.SelectedCells, true);
         }
 
+        /// <summary>
+        /// At one point I intended to add code to smooth the whole table. Never did.
+        /// </summary>
         private void smoothTableButton_Click(object sender, EventArgs e)
         {
             // create 2d array same size as table
@@ -22,6 +33,9 @@ namespace NSFW.TimingEditor
             // apply deltas
         }
 
+        /// <summary>
+        /// Indicate wehether smoothing is possible for the selected cell.
+        /// </summary>
         private bool CanSmooth
         {
             get
@@ -30,6 +44,10 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Depending on the value of the 'forReal' parmeter, either smooth 
+        /// the selected cells, or indicate whether smoothing is possible.
+        /// </summary>
         private bool Smooth(DataGridViewSelectedCellCollection selectedCells, bool forReal)
         {
             if (this.SelectedColumn(selectedCells))
@@ -53,6 +71,9 @@ namespace NSFW.TimingEditor
             return false;
         }
 
+        /// <summary>
+        /// Determine whether the selected cells are all in a column.
+        /// </summary>
         private bool SelectedColumn(System.Collections.ICollection selectedCells)
         {
             int column = -1;
@@ -81,6 +102,11 @@ namespace NSFW.TimingEditor
             return true;
         }
 
+        /// <summary>
+        /// Indicate whether the selected cells are all in a row.
+        /// </summary>
+        /// <param name="selectedCells"></param>
+        /// <returns></returns>
         private bool SelectedRow(System.Collections.ICollection selectedCells)
         {
             int row = -1;
@@ -109,6 +135,9 @@ namespace NSFW.TimingEditor
             return true;
         }
 
+        /// <summary>
+        /// Helper function for smoothing a list of cells.
+        /// </summary>
         private void Smooth(IList<DataGridViewCell> cells)
         {
             try
@@ -148,6 +177,9 @@ namespace NSFW.TimingEditor
             }
         }
 
+        /// <summary>
+        /// Sort the values in a collection of cells.
+        /// </summary>
         private List<DataGridViewCell> SortColumn(DataGridViewSelectedCellCollection input)
         {
             List<DataGridViewCell> result = new List<DataGridViewCell>();
@@ -174,6 +206,9 @@ namespace NSFW.TimingEditor
             return result;
         }
 
+        /// <summary>
+        /// Sort the values in a selected row.
+        /// </summary>
         private List<DataGridViewCell> SortRow(DataGridViewSelectedCellCollection input)
         {
             List<DataGridViewCell> result = new List<DataGridViewCell>();
